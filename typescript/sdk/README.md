@@ -47,3 +47,53 @@ This example:
 Most API integrations are stateless.
 
 However, if your MCP server needs to persist state between calls (i.e., remembering previous interactions in a single chat conversation), you can use the `createStatefulServer` function instead.
+
+### Creating a Client
+
+Here's how to create a client to connect to Smithery-hosted MCP servers with automatic keep-alive:
+
+```typescript
+import { createSmitheryClient } from '@smithery/sdk/client/transport.js'
+
+// Create a client with automatic keep-alive enabled
+const client = await createSmitheryClient(
+  { name: "my-client", version: "1.0.0" },
+  "https://api.smithery.ai/mcp/fetch",
+  { apiKey: process.env.SMITHERY_API_KEY }
+)
+
+// Use the client normally
+const tools = await client.listTools()
+console.log("Available tools:", tools.tools.map(t => t.name))
+
+// Keep-alive runs automatically in the background
+// Check status if needed
+console.log("Keep-alive status:", client.keepAlive.getStatus())
+```
+
+This example:
+1. Creates a client with automatic keep-alive for Smithery servers
+2. Automatically detects Smithery environment and starts keep-alive pings
+3. Provides manual control via `client.keepAlive.start()`, `stop()`, and `getStatus()`
+
+#### Advanced Keep-Alive Configuration
+
+For custom keep-alive behavior:
+
+```typescript
+import { withKeepAlive } from '@smithery/sdk/client/keep-alive.js'
+import { Client } from "@modelcontextprotocol/sdk/client/index.js"
+import { createTransport } from '@smithery/sdk/client/transport.js'
+
+const client = new Client({ name: "my-client", version: "1.0.0" })
+const transport = createTransport("https://api.smithery.ai/mcp/server")
+
+const enhancedClient = withKeepAlive(client, baseUrl, urlOptions, {
+  interval: 20000,        // Ping every 20 seconds
+  maxFailures: 5,         // Allow 5 consecutive failures
+  debug: true,            // Enable debug logging
+  strategy: "hidden-tool" // Prefer hidden tool strategy
+})
+
+await enhancedClient.connect(transport)
+```
